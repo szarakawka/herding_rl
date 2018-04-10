@@ -7,7 +7,7 @@ import atexit
 rl = Learning(
     env=OpenAIGymTensorforceWrapper(
         EnvWrapper(
-            dog_count=2,
+            dog_count=1,
             sheep_count=5,
             agent_layout=herding.constants.AgentLayout.LAYOUT1,
             use_tan_to_center=True
