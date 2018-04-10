@@ -1,0 +1,12 @@
+- sanity checks: predefined net with custom strategy hardcoded (for dog_count = 1  and > 1)
+- fix errors for dog_count > 1
+- run trpo learning with visualization
+    - fix monitor and env usage
+- enable tensorboard summaries
+
+
+- experiment: dense net vs convolutional net
+- experiment: use_tan_to_center=True vs use_tan_to_center=False
+        - fix: use_tan_to_center=False cause it is not working currently
+- experiment: curriculum learning vs "flat" learning
+- experiment: trpo vs other rl-algorithm

@@ -1,6 +1,6 @@
 from tensorforce.agents import TRPOAgent
 from rl.multi_agent_wrapper import MultiAgentWrapper
-from rl.env_wrapper import EnvWrapper, OpenAIWrapper
+from rl.env_wrapper import EnvWrapper, OpenAIGymTensorforceWrapper
 import herding
 
 
@@ -9,13 +9,14 @@ network_spec = [
     dict(type='dense', size=64)
 ]
 
-env=OpenAIWrapper(
+env = OpenAIGymTensorforceWrapper(
     EnvWrapper(
-        dog_count=1,
+        dog_count=3,
         sheep_count=5,
-        agent_layout=herding.constants.AgentLayout.LAYOUT1
-    ),
-    'herding-singleDog-v0')
+        agent_layout=herding.constants.AgentLayout.LAYOUT1,
+        use_tan_to_center=True
+    )
+)
 
 agent_type = TRPOAgent
 agent = MultiAgentWrapper(

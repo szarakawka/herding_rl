@@ -1,5 +1,6 @@
 import sys
 import os
+import gym
 from tensorforce.agents import TRPOAgent
 from tensorforce.execution import Runner
 from rl.multi_agent_wrapper import MultiAgentWrapper
@@ -32,6 +33,9 @@ class Learning:
         self.env = env
 
         self.agent_type = agent_type
+
+        self.is_monitor = isinstance(env.gym, gym.wrappers.Monitor)
+        dog_count = env.gym.dog_count if not self.is_monitor else env.gym.env.dog_count
         self.agent = MultiAgentWrapper(
                 self.agent_type,
                 dict(
@@ -39,13 +43,13 @@ class Learning:
                     actions=self.env.actions,
                     network=self.network_spec
                 ),
-                env.gym.dog_count)
+                dog_count)
 
         self.repeat_actions = repeat_actions
         self.max_episode_timesteps = max_episode_timesteps
         self.runner = Runner(agent=self.agent, environment=self.env, repeat_actions=repeat_actions)
         self.instance_episodes = 0
-        self.terminal_reward = env.gym.max_episode_reward
+        self.terminal_reward = env.gym.max_episode_reward if not self.is_monitor else env.gym.env.max_episode_reward
         sys.stdout.flush()
 
     def _log_data(self, r, info):
