@@ -5,12 +5,13 @@ import numpy as np
 import time
 import sys
 
+
 class ManualSteering:
 
     def __init__(self, env):
         self.env = env
         self.player_input = [0, 0, 0]
-        self.other_dogs_input = ([0, 0, 0],) * env.dog_count
+        self.other_dogs_input = ([0, 0, 0],) * (env.dog_count - 1)
         self.quit = False
 
     def key_press(self, k, mod):
@@ -70,6 +71,7 @@ class ManualSteering:
         print('\r', end='', flush=True)
         for arg in args:
             print(str(arg) + '\t', end='', flush=True)
+
 
 def play(my_env=None):
     env = my_env if my_env is not None else Herding()

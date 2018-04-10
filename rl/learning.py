@@ -35,6 +35,7 @@ class Learning:
         self.agent_type = agent_type
 
         self.is_monitor = isinstance(env.gym, gym.wrappers.Monitor)
+
         dog_count = env.gym.dog_count if not self.is_monitor else env.gym.env.dog_count
         self.agent = MultiAgentWrapper(
                 self.agent_type,

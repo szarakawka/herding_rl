@@ -1,3 +1,8 @@
+- play herding with dog_count = 1   ... ok
+- play herding with dog_count > 1   ... ok
+
+- fix too many actions in manual steering
+
 - sanity checks: predefined net with custom strategy hardcoded (for dog_count = 1  and > 1)
 - fix errors for dog_count > 1
 - run trpo learning with visualization
