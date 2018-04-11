@@ -8,3 +8,11 @@ class RotationMode:
 
 class AgentLayout:
     RANDOM, LAYOUT1, LAYOUT2 = range(3)
+
+
+class AgentObservationCompression:
+    COMPRESSED, TWO_CHANNEL = range(2)
+
+
+class AgentObservationAids:
+    NO, COMPASS, TO_MASS_CENTER = range(3)

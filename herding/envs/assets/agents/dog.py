@@ -7,14 +7,14 @@ DEG2RAD = 0.01745329252
 
 class Dog(ActiveAgent):
 
-    RAYS = 0
-    TARGETS = 1
+    DISTANCES_IDX = 0
+    TARGETS_IDX = 1
     LENGTH_TO_CENTER = 0
     TAN_TO_CENTER = 1
 
     def __init__(self, env):
         super().__init__(env)
-        
+
         self.rotation_mode = env.rotation_mode
         self.ray_count = env.ray_count
         self.ray_length = env.ray_length
@@ -22,11 +22,13 @@ class Dog(ActiveAgent):
         self.max_rotation_speed = env.max_rotation_speed
         self.field_of_view = env.field_of_view
         self.herd_centre_point = env.herd_centre_point
-        self.use_tan_to_center = env.use_tan_to_center
+        self.observation_compression = env.agent_observations_compression
+        self.observation_aid = env.agent_observations_aids
+        self.observation_aid_method = self._get_observation_aid_method()
 
         self.rotation = 0
         self.ray_radian = []
-        
+
         for i in range(self.ray_count):
             self.ray_radian.append((math.pi + ((180 - self.field_of_view) / 360) * math.pi + (self.field_of_view / (self.ray_count - 1)) * DEG2RAD * i) % (2 * math.pi))
         if self.ray_radian[0] > self.ray_radian[self.ray_count - 1]:
@@ -34,9 +36,8 @@ class Dog(ActiveAgent):
         else:
             self.wide_view = False
 
-        for i, _ in enumerate(self.observation[self.RAYS]):
-            self.observation[self.RAYS][i] = 0
-            self.observation[self.TARGETS][i] = 0
+        self.observation.fill(0.)
+        self.rays = np.ndarray(shape=(2, self.ray_count), dtype=np.float32)
 
     def move(self, action):
         delta_x = action[0] * self.max_movement_speed
@@ -60,9 +61,10 @@ class Dog(ActiveAgent):
         self.y += delta_y * -cos_rotation + delta_x * sin_rotation
 
     def clear_observation(self):
-        for i, _ in enumerate(self.observation[self.RAYS]):
-            self.observation[self.RAYS][i] = 0
-            self.observation[self.TARGETS][i] = 0
+        self.observation.fill(0.)
+
+    def clear_rays(self):
+        self.rays.fill(0.)
 
     def get_distance_from_agent(self, agent):
         return pow(pow((self.x - agent.x), 2) + pow((self.y - agent.y), 2), 0.5)
@@ -101,15 +103,15 @@ class Dog(ActiveAgent):
             distance = distance1 - self.radius
         else:
             distance = distance2 - self.radius
-        if 1 - (distance / self.ray_length) > self.observation[self.RAYS][index]:
-            self.observation[self.RAYS][index] = 1 - (distance / self.ray_length)
-            self.observation[self.TARGETS][index] = 1 if type(agent) is Dog else -1
+        if 1 - (distance / self.ray_length) > self.rays[self.DISTANCES_IDX][index]:
+            self.rays[self.DISTANCES_IDX][index] = 1 - (distance / self.ray_length)
+            self.rays[self.TARGETS_IDX][index] = 1 if type(agent) is Dog else -1
 
     def iterate_rays(self, distance, agent, index, iterator):
         while 0 <= index <= self.ray_count - 1:
             circle_distance = self.calculate_straight_to_circle_distance(agent, index)
             if circle_distance <= self.radius:
-                if (distance - (2 * self.radius)) / self.ray_length < 1 - self.observation[self.RAYS][index]:
+                if (distance - (2 * self.radius)) / self.ray_length < 1 - self.rays[self.DISTANCES_IDX][index]:
                     self.set_distance_and_color(index, agent)
             else:
                 break
@@ -125,15 +127,35 @@ class Dog(ActiveAgent):
         # color right rays
         self.iterate_rays(distance, agent, right, 1)
 
-    def update_observation_to_center(self):
-        last_index = self.ray_count
+    def _aid_observation_to_mass_center(self):
         abs_x = abs(self.x - self.herd_centre_point[0])
         abs_y = abs(self.y - self.herd_centre_point[1])
-        self.observation[self.LENGTH_TO_CENTER][last_index] = pow(pow(abs_x, 2) + pow(abs_y, 2), 0.5) / self.ray_length
-        self.observation[self.TAN_TO_CENTER][last_index] = (((np.arctan2(abs_x, abs_y) + self.rotation) % (2 * math.pi)) * 2) / (2 * math.pi) - 1
+        length_to_center = pow(pow(abs_x, 2) + pow(abs_y, 2), 0.5) / self.ray_length
+        tan_to_center = (((np.arctan2(abs_x, abs_y) + self.rotation) % (2 * math.pi)) * 2) / (2 * math.pi) - 1
+        if self.observation.shape[0] == 2:
+            self.observation[self.LENGTH_TO_CENTER][-1] = length_to_center
+            self.observation[self.TAN_TO_CENTER][-1] = tan_to_center
+        else:
+            self.observation[0, -2] = length_to_center
+            self.observation[0, -1] = tan_to_center
 
-    def get_observation(self):
-        self.clear_observation()
+    # TODO
+    def _aid_observation_compass(self):
+        raise NotImplementedError
+
+    def _no_aid_observation(self):
+        pass
+
+    def _get_observation_aid_method(self):
+        if self.observation_aid == constants.AgentObservationAids.TO_MASS_CENTER:
+            return self._aid_observation_to_mass_center
+        elif self.observation_aid == constants.AgentObservationAids.COMPASS:
+            return self._aid_observation_compass
+        else:
+            return self._no_aid_observation
+
+    def update_rays(self):
+        self.clear_rays()
         for agent in self.sheep_list + self.dog_list:
             if agent is self:
                 continue
@@ -143,7 +165,16 @@ class Dog(ActiveAgent):
                 if self.is_in_sight(temp_angle):
                     self.color_rays(temp_angle, distance, agent)
 
-        if self.use_tan_to_center:
-            self.update_observation_to_center()
+    def _from_rays_to_observations(self):
+        if self.observation_compression == constants.AgentObservationCompression.TWO_CHANNEL:
+            self.observation[:, 0:self.ray_count] = self.rays
+        else:
+            self.observation[0, 0:self.ray_count] = self.rays[0, :] * self.rays[1, :]
+
+    def get_observation(self):
+        self.clear_observation()
+        self.update_rays()
+        self._from_rays_to_observations()
+        self.observation_aid_method()
 
         return self.observation

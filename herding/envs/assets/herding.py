@@ -27,7 +27,8 @@ class Herding(gym.Env):
             ray_length=600,
             field_of_view=180,
             rotation_mode=constants.RotationMode.FREE,
-            use_tan_to_center=False
+            agent_observations_compression = constants.AgentObservationCompression.TWO_CHANNEL,
+            agent_observations_aids = constants.AgentObservationAids.TO_MASS_CENTER
     ):
         self.dog_count = dog_count
         self.sheep_count = sheep_count
@@ -39,7 +40,9 @@ class Herding(gym.Env):
         self.ray_length = ray_length
         self.field_of_view = field_of_view
         self.rotation_mode = rotation_mode
-        self.use_tan_to_center = use_tan_to_center
+        self.continuous_sheep_spread_rate = continuous_sheep_spread_rate
+        self.agent_observations_compression = agent_observations_compression
+        self.agent_observations_aids = agent_observations_aids
 
         self.map_width = 800
         self.map_height = 600
@@ -114,7 +117,8 @@ class Herding(gym.Env):
 
     @property
     def single_observation_space(self):
-        single_observation_space = spaces.Box(-1, 1, shape=(2, self.ray_count), dtype=np.float32)
+        shape = agents.Dog.get_observation_array_shape(self)
+        single_observation_space = spaces.Box(-1, 1, shape=shape, dtype=np.float32)
         return single_observation_space
 
     @property
@@ -221,7 +225,7 @@ class AgentLayoutFunction:
 
     @staticmethod
     def _random(env):
-        padding = 5
+        padding = 50
         for agent in env.dog_list + env.sheep_list:
             x = random.randint(agent.radius + padding, env.map_width - agent.radius - padding)
             y = random.randint(agent.radius + padding, env.map_height - agent.radius - padding)
@@ -229,7 +233,7 @@ class AgentLayoutFunction:
 
     @staticmethod
     def _layout1(env):
-        sheep_padding = 5
+        sheep_padding = 50
         for agent in env.sheep_list:
             x = random.randint(agent.radius + sheep_padding, env.map_width - agent.radius - sheep_padding)
             y = random.randint(agent.radius + sheep_padding + 200, env.map_height - agent.radius - sheep_padding)
@@ -237,7 +241,7 @@ class AgentLayoutFunction:
 
         for i, agent in enumerate(env.dog_list):
             x = (i + 1) * (env.map_width / (env.dog_count + 1))
-            y = 0
+            y = 20
             agent.set_pos(x, y)
 
     @staticmethod

@@ -159,10 +159,25 @@ class EnvWrapper(herding.Herding):
 
     @property
     def action_space(self):
-        dim = 3 if self.rotation_mode is herding.constants.RotationMode.FREE else 2
-        singleActionSpace = spaces.Box(-1, 1, (dim,), dtype=np.float32)
-        return singleActionSpace
+        return self.single_action_space
 
     @property
     def observation_space(self):
-        return spaces.Box(-1, 1, ((self.ray_count + 1) * 2,), dtype=np.float32)
+        return self.single_observation_space
+
+    @classmethod
+    def from_herding(cls, herding_obj):
+        return cls(dog_count=herding_obj.dog_count,
+                   sheep_count=herding_obj.sheep_count,
+                   agent_layout=herding_obj.agent_layout,
+                   sheep_type=herding_obj.sheep_type,
+                   max_movement_speed=herding_obj.max_movement_speed,
+                   max_rotation_speed=herding_obj.max_rotation_speed,
+                   continuous_sheep_spread_rate=herding_obj.continuous_sheep_spread_rate,
+                   ray_count=herding_obj.ray_count,
+                   ray_length=herding_obj.ray_length,
+                   field_of_view=herding_obj.field_of_view,
+                   rotation_mode=herding_obj.rotation_mode,
+                   agent_observations_compression=herding_obj.agent_observations_compression,
+                   agent_observations_aids=herding_obj.agent_observations_aids)
+

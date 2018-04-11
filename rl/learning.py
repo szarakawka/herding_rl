@@ -9,6 +9,7 @@ from statistics import mean
 EXIT = -1
 NOOP = 0
 SAVE = 1
+SAVE_FREQUENCY = 10
 flag = NOOP
 
 
@@ -17,11 +18,13 @@ class Learning:
     def __init__(
             self,
             env,
+            save_dir,
             agent_type=TRPOAgent,
-            repeat_actions=5,
-            max_episode_timesteps=8000
+            repeat_actions=3,       # was: repeat actions=5
+            max_episode_timesteps=1000      # max_episode_timesteps=8000
     ):
-        self.save_dir = os.path.dirname(__file__) + '/model/'
+
+        self.save_dir = save_dir
         if not os.path.exists(self.save_dir):
             os.makedirs(self.save_dir)
 
@@ -62,7 +65,7 @@ class Learning:
 
     def episode_finished(self, r, _):
         global flag, EXIT, SAVE, NOOP
-        save_frequency = 50
+        save_frequency = SAVE_FREQUENCY
         info = ''
         self.instance_episodes += 1
 

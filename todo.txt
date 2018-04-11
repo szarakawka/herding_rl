@@ -1,17 +1,36 @@
 - play herding with dog_count = 1   ... ok
 - play herding with dog_count > 1   ... ok
+- fix too many actions in manual steering ... ok
+- check observations ... use_tan_to_center works ok in Herding play     ... ok
+- add: AgentObservationCompression and AgentObservationAids options
+    - AgentObservationCompression option requires the distinction between agent observation
+    (required by api) and agent rays (used for visualization and for calculating observations)
 
-- fix too many actions in manual steering
 
-- sanity checks: predefined net with custom strategy hardcoded (for dog_count = 1  and > 1)
+
+Experiments with dog_count=1 for now:
+- fix monitor and env usage
+
+
+
+
 - fix errors for dog_count > 1
+
+
 - run trpo learning with visualization
-    - fix monitor and env usage
+
+
 - enable tensorboard summaries
+- sanity checks: predefined net with custom strategy hardcoded (for dog_count = 1  and > 1)
 
 
-- experiment: dense net vs convolutional net
+- experiment: dense net with two channels vs one channel (two channels multiplied elementwise)
 - experiment: use_tan_to_center=True vs use_tan_to_center=False
         - fix: use_tan_to_center=False cause it is not working currently
+
+- experiment: dense net vs convolutional net
 - experiment: curriculum learning vs "flat" learning
 - experiment: trpo vs other rl-algorithm
+
+
+- feature_request: variable number of dogs and sheep (within specified range) from episode to episode

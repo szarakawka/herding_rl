@@ -1,5 +1,6 @@
 import copy
 import numpy as np
+from ..constants import AgentObservationAids, AgentObservationCompression
 
 
 class Agent:
@@ -30,10 +31,20 @@ class ActiveAgent(Agent):
 
     def __init__(self, env):
         super().__init__(env)
-        if env.use_tan_to_center:
-            self.observation = np.ndarray(shape=(2, env.ray_count + 1), dtype=float)
-        else:
-            self.observation = np.ndarray(shape=(2, env.ray_count), dtype=float)
+        self.observation = np.ndarray(shape=self.get_observation_array_shape(env), dtype=np.float32)
+
+    @staticmethod
+    def get_observation_array_shape(env):
+        n_channels = 2 if env.agent_observations_compression == AgentObservationCompression.TWO_CHANNEL else 1
+
+        size = env.ray_count
+        if env.agent_observations_aids is not AgentObservationAids.NO:
+            if n_channels == 1:
+                size += 2
+            else:
+                size += 1
+
+        return n_channels, size
 
     def move(self, action):
         raise NotImplementedError

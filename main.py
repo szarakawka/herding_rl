@@ -4,18 +4,25 @@ from rl.learning import *
 
 
 env = herding.Herding(
-    dog_count=3,
+    dog_count=1,
     sheep_count=5,
     max_movement_speed=10,
-    rotation_mode=herding.constants.RotationMode.FREE,
+    rotation_mode=herding.constants.RotationMode.LOCKED_ON_HERD_CENTRE,
     agent_layout=herding.constants.AgentLayout.RANDOM,
-    use_tan_to_center=True
+    agent_observations_aids=herding.constants.AgentObservationAids.TO_MASS_CENTER,
+    agent_observations_compression=herding.constants.AgentObservationCompression.TWO_CHANNEL
 )
 
+herding.play(env)
 
-# rl = Learning(env=OpenAIGymTensorforceWrapper(EnvWrapper(env)))
-# rl.load_model()
+# save_dir = 'experiments_logs/001'
+#
+# rl = Learning(env=OpenAIGymTensorforceWrapper(
+#                     EnvWrapper.from_herding(env),
+#                     visualize=False),
+#               save_dir=save_dir,
+#               max_episode_timesteps=1000)
+# # rl.load_model()
 # rl.learn()
 
 
-herding.play(env)
