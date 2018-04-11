@@ -1,15 +1,37 @@
-- play herding with dog_count = 1   ... ok
-- play herding with dog_count > 1   ... ok
-- fix too many actions in manual steering ... ok
-- check observations ... use_tan_to_center works ok in Herding play     ... ok
+- play herding with dog_count = 1   ... done
+
+- play herding with dog_count > 1   ... done
+
+- fix too many actions in manual steering ... done
+
+- fix env usage ... done
+
+- check observations ... use_tan_to_center works ok in Herding play     ... done
+
 - add: AgentObservationCompression and AgentObservationAids options
     - AgentObservationCompression option requires the distinction between agent observation
     (required by api) and agent rays (used for visualization and for calculating observations)
+    ... done
+
+- feature_request: herding config loadable from json (which should be copied to experiments_logs directories
+similarily to agent/net config)  ... done
+
+
+- enable tensorboard summaries
+
+- fix/check monitor
+
+- run trpo learning with visualization
 
 
 
-Experiments with dog_count=1 for now:
-- fix monitor and env usage
+
+- Experiments with dog_count=1 for now:
+    - temporarily remove multiagent wrapper  ... ok
+    - investivate current reward function -> seams legit, because it is possible to train simple 1 dog,
+    3 sheep problem
+
+
 
 
 
@@ -17,20 +39,21 @@ Experiments with dog_count=1 for now:
 - fix errors for dog_count > 1
 
 
-- run trpo learning with visualization
 
-
-- enable tensorboard summaries
 - sanity checks: predefined net with custom strategy hardcoded (for dog_count = 1  and > 1)
 
 
 - experiment: dense net with two channels vs one channel (two channels multiplied elementwise)
 - experiment: use_tan_to_center=True vs use_tan_to_center=False
-        - fix: use_tan_to_center=False cause it is not working currently
 
 - experiment: dense net vs convolutional net
 - experiment: curriculum learning vs "flat" learning
 - experiment: trpo vs other rl-algorithm
 
+- experiment: additional inputs that encode agent number (or role) in the team
+        (one-hot encoding not possible, but maybe other)
+
 
 - feature_request: variable number of dogs and sheep (within specified range) from episode to episode
+- feature_req: refactor observation into two factors: rays + aids (of different shapes, types etc), because now
+it is artificially concatenated together

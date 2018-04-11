@@ -168,6 +168,8 @@ class Dog(ActiveAgent):
     def _from_rays_to_observations(self):
         if self.observation_compression == constants.AgentObservationCompression.TWO_CHANNEL:
             self.observation[:, 0:self.ray_count] = self.rays
+        elif self.observation_compression == constants.AgentObservationCompression.TWO_CHANNEL_FLATTENED:
+            self.observation[0, 0:2*self.ray_count] = self.rays.flatten()
         else:
             self.observation[0, 0:self.ray_count] = self.rays[0, :] * self.rays[1, :]
 

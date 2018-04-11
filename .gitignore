@@ -1,4 +1,4 @@
 .idea/
 rl/model/
 __pycache__
-experiments
+experiments_logs

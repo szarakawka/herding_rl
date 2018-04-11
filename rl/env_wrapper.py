@@ -157,9 +157,9 @@ class EnvWrapper(herding.Herding):
 
         return newState
 
-    @property
-    def action_space(self):
-        return self.single_action_space
+    # @property
+    # def action_space(self):
+    #     return self.single_action_space
 
     @property
     def observation_space(self):

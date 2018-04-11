@@ -27,6 +27,7 @@ class MultiAgentWrapper:
     def episode(self):
         return self.agents[0].episode
 
+    # TODO probably parameter 'independent' has to be set
     def act(self, states, deterministic=False):
         action = ()
         for i, agent in enumerate(self.agents):

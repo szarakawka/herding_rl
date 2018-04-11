@@ -1,6 +1,7 @@
 import gym
 import numpy as np
 import random
+import json
 from gym import spaces
 from .rendering.renderer import Renderer
 from . import constants
@@ -27,8 +28,8 @@ class Herding(gym.Env):
             ray_length=600,
             field_of_view=180,
             rotation_mode=constants.RotationMode.FREE,
-            agent_observations_compression = constants.AgentObservationCompression.TWO_CHANNEL,
-            agent_observations_aids = constants.AgentObservationAids.TO_MASS_CENTER
+            agent_observations_compression=constants.AgentObservationCompression.TWO_CHANNEL_FLATTENED,
+            agent_observations_aids=constants.AgentObservationAids.TO_MASS_CENTER
     ):
         self.dog_count = dog_count
         self.sheep_count = sheep_count
@@ -160,6 +161,12 @@ class Herding(gym.Env):
     def _set_up_agents(self):
         self.agent_layout_function(self)
 
+    @classmethod
+    def from_spec(cls, spec_file_path):
+        with open(spec_file_path, 'r') as f:
+            spec = json.load(f, object_hook=constants.as_enum)
+            return cls(**spec)
+
 
 class RewardCounter:
 
@@ -198,7 +205,10 @@ class RewardCounter:
             self.previous_scatter = self.scatter
             self.first_scatter = self.scatter
 
-        return ((self.previous_scatter - self.scatter) * self.max_episode_reward) / self.first_scatter
+        if self.first_scatter == 0:
+            return self.max_episode_reward
+        else:
+            return ((self.previous_scatter - self.scatter) * self.max_episode_reward) / self.first_scatter
 
     def _get_scatter(self):
         scatter = 0

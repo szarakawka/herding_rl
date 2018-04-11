@@ -38,6 +38,8 @@ class ActiveAgent(Agent):
         n_channels = 2 if env.agent_observations_compression == AgentObservationCompression.TWO_CHANNEL else 1
 
         size = env.ray_count
+        if env.agent_observations_compression == AgentObservationCompression.TWO_CHANNEL_FLATTENED:
+            size *= 2
         if env.agent_observations_aids is not AgentObservationAids.NO:
             if n_channels == 1:
                 size += 2
