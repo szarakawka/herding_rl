@@ -28,8 +28,9 @@ class Herding(gym.Env):
             ray_length=600,
             field_of_view=180,
             rotation_mode=constants.RotationMode.FREE,
-            agent_observations_compression=constants.AgentObservationCompression.TWO_CHANNEL_FLATTENED,
-            agent_observations_aids=constants.AgentObservationAids.TO_MASS_CENTER
+            agent_observations_representation=constants.AgentObservationRepresentation.TWO_CHANNEL_FLATTENED,
+            agent_observations_aids=constants.AgentObservationAids.TO_MASS_CENTER,
+            reward_type=constants.RewardCalculatorType.SCATTER_DIFFERENCE
     ):
         self.dog_count = dog_count
         self.sheep_count = sheep_count
@@ -42,8 +43,9 @@ class Herding(gym.Env):
         self.field_of_view = field_of_view
         self.rotation_mode = rotation_mode
         self.continuous_sheep_spread_rate = continuous_sheep_spread_rate
-        self.agent_observations_compression = agent_observations_compression
+        self.agent_observations_representation = agent_observations_representation
         self.agent_observations_aids = agent_observations_aids
+        self.reward_type = reward_type
 
         self.map_width = 800
         self.map_height = 600
@@ -56,36 +58,45 @@ class Herding(gym.Env):
 
         self.herd_centre_point = [0, 0]
 
+        # helper arrays
+        self.sheep_distances_to_herd_center = np.zeros(self.sheep_count, dtype=np.float32)
+        self.sheep_in_target = np.zeros(self.sheep_count, dtype=np.float32)
+
         self.dog_list = None
         self.sheep_list = None
         self.dog_list, self.sheep_list = self._create_agents()
         self._set_agents_lists()
 
-        self.reward_counter = RewardCounter(self)
+        self.reward_calculator = reward_type_factory(self.reward_type)(self)
         self.viewer = None
         self.agent_layout_function = AgentLayoutFunction.get_function(self.agent_layout)
 
     def step(self, action):
+
         for i, dog in enumerate(self.dog_list):
             dog.move(action[i])
 
         for sheep in self.sheep_list:
             sheep.move()
 
-        self._update_herd_centre_point()
-        state = self._get_state()
-        reward = self.reward_counter.get_reward()
-        is_done = self.reward_counter.is_done()
+        self._update_herd_centre_point_and_helper_arrays()
 
-        return state, reward, is_done, {
-            "scatter": self.reward_counter.scatter
+        state = self._get_state()
+
+        self.reward_calculator.do_step()
+
+        reward = self.reward_calculator.reward
+        done = self.is_done()
+
+        return state, reward, done, {
+            # "scatter": self.reward_calculator.scatter
         }
 
     def reset(self):
         self._set_up_agents()
-        state = self._get_state()
-
-        return state
+        self._update_herd_centre_point_and_helper_arrays()
+        self.reward_calculator.reset(self)
+        return self._get_state()
 
     def render(self, mode='human', close=False):
         if close:
@@ -130,12 +141,12 @@ class Herding(gym.Env):
     def _create_agents(self):
         dog_list = []
         sheep_list = []
-        Sheep = agents.get_sheep_class(self.sheep_type)
+        sheep = agents.get_sheep_class(self.sheep_type)
 
         for i in range(self.dog_count):
             dog_list.append(agents.Dog(self))
         for i in range(self.sheep_count):
-            sheep_list.append(Sheep(self))
+            sheep_list.append(sheep(self))
 
         return dog_list, sheep_list
 
@@ -149,7 +160,7 @@ class Herding(gym.Env):
             state.append(dog.get_observation())
         return state
 
-    def _update_herd_centre_point(self):
+    def _update_herd_centre_point_and_helper_arrays(self):
         self.herd_centre_point[0] = self.herd_centre_point[1] = 0
         for sheep in self.sheep_list:
             self.herd_centre_point[0] += sheep.x
@@ -157,6 +168,26 @@ class Herding(gym.Env):
 
         self.herd_centre_point[0] /= self.sheep_count
         self.herd_centre_point[1] /= self.sheep_count
+
+        # update helper arrays
+        self._calc_sheep_distances_to_herd_center()
+        self._determine_if_sheep_inside_target_circle()
+
+    def is_done(self):
+        return bool(np.all(self.sheep_in_target))
+
+    def _calc_sheep_distances_to_herd_center(self):
+        for i, sheep in enumerate(self.sheep_list):
+            self.sheep_distances_to_herd_center[i] = self._get_distance_to_herd_center(sheep)
+
+    def _get_distance_to_herd_center(self, sheep):
+        return math.sqrt(pow(sheep.x - self.herd_centre_point[0], 2) +
+                         pow(sheep.y - self.herd_centre_point[1], 2))
+
+    def _determine_if_sheep_inside_target_circle(self):
+        for i in range(self.sheep_count):
+            self.sheep_in_target[i] = \
+                self.sheep_distances_to_herd_center[i] < self.herd_target_radius - self.agent_radius
 
     def _set_up_agents(self):
         self.agent_layout_function(self)
@@ -168,59 +199,117 @@ class Herding(gym.Env):
             return cls(**spec)
 
 
-class RewardCounter:
+def reward_type_factory(reward_type):
+    return {
+        constants.RewardCalculatorType.SCATTER_DIFFERENCE: RelativeScatterRewardCalculator,
+        constants.RewardCalculatorType.IN_TARGET_DIFFERENCE: InTargetDifferenceCircleRewardCalculator,
+        constants.RewardCalculatorType.COMPLEX: ComplexRewardCalculator
+    }[reward_type]
+
+
+class RewardCalculator:
 
     def __init__(self, env):
-        self.herd_centre_point = env.herd_centre_point
+        self.env = env
+        self.reward = 0.
 
-        self.sheep_list = env.sheep_list
-        self.sheep_count = env.sheep_count
-        self.sheep_type = env.sheep_type
+    def do_step(self):
+        """This has to be overwritten by subclass."""
+        raise NotImplementedError('Overwrite this method.')
 
-        self.previous_scatter = 0
-        self.scatter = 0
-        self.first_scatter = 0
-        self.first_iteration = True
+    def reset(self, env):
+        self.env = env
+        self.reward = 0.
 
-        self.herd_target_radius = env.herd_target_radius
-        self.max_episode_reward = env.max_episode_reward
-        self.agent_radius = env.agent_radius
 
-    def is_done(self):
-        for sheep in self.sheep_list:
-            distance = self._get_distance(sheep)
+class ScatterBasedRewardCalculator(RewardCalculator):
 
-            if distance > self.herd_target_radius - self.agent_radius:
-                return False
+    def __init__(self, env):
+        super(ScatterBasedRewardCalculator, self).__init__(env)
 
-        self.first_iteration = True
-        return True
+        self.scatter = 0.
+        self._calc_scatter()
 
-    def get_reward(self):
+    def reset(self, env):
+        super(ScatterBasedRewardCalculator, self).reset(env)
+        self._calc_scatter()
+
+    def do_step(self):
+        raise NotImplementedError('Overwrite this method.')
+
+    def _calc_scatter(self):
+        self.scatter = np.mean(self.env.sheep_distances_to_herd_center)
+
+
+class RelativeScatterRewardCalculator(ScatterBasedRewardCalculator):
+
+    def __init__(self, env):
+        super(RelativeScatterRewardCalculator, self).__init__(env)
+        self.first_scatter = self.scatter
         self.previous_scatter = self.scatter
-        self.scatter = self._get_scatter()
 
-        if self.first_iteration:
-            self.first_iteration = False
-            self.previous_scatter = self.scatter
-            self.first_scatter = self.scatter
+    def do_step(self):
+        self.previous_scatter = self.scatter
+        self._calc_scatter()
+        self.reward = (self.previous_scatter - self.scatter) / self.first_scatter
 
-        if self.first_scatter == 0:
-            return self.max_episode_reward
-        else:
-            return ((self.previous_scatter - self.scatter) * self.max_episode_reward) / self.first_scatter
+    def reset(self, env):
+        super(RelativeScatterRewardCalculator, self).reset(env)
+        self.first_scatter = self.scatter
+        self.previous_scatter = self.scatter
 
-    def _get_scatter(self):
-        scatter = 0
-        for sheep in self.sheep_list:
-            scatter += max(self._get_distance(sheep) - self.herd_target_radius, 0)
 
-        scatter /= self.sheep_count
-        return scatter
+class InTargetDifferenceCircleRewardCalculator(RewardCalculator):
 
-    def _get_distance(self, sheep):
-        return math.sqrt(pow(sheep.x - self.herd_centre_point[0], 2) + \
-                       pow(sheep.y - self.herd_centre_point[1], 2))
+    def __init__(self, env):
+        super(InTargetDifferenceCircleRewardCalculator, self).__init__(env)
+        self.prev_sheep_in_target = np.zeros_like(env.sheep_in_target)
+        np.copyto(self.prev_sheep_in_target, self.env.sheep_in_target)
+
+    def do_step(self):
+        self.reward = np.mean(self.env.sheep_in_target - self.prev_sheep_in_target) *\
+                      self.env.max_episode_reward
+        np.copyto(self.prev_sheep_in_target, self.env.sheep_in_target)
+
+    def reset(self, env):
+        super(InTargetDifferenceCircleRewardCalculator, self).reset(env)
+        np.copyto(self.prev_sheep_in_target, self.env.sheep_in_target)
+
+
+class ComplexRewardCalculator(RelativeScatterRewardCalculator):
+    """
+    Takes into account:
+    1) scatter difference,
+    2) time penalty,
+    3) bonus for all sheep in herd center
+    """
+
+    def __init__(self, env):
+        super(ComplexRewardCalculator, self).__init__(env)
+        self.TIME_PENALTY = - self.env.max_episode_reward / 10000.
+
+    def do_step(self):
+        super(ComplexRewardCalculator, self).do_step()
+        bonus = float(self.env.is_done()) * self.env.max_episode_reward
+        self.reward += self.TIME_PENALTY + bonus
+
+    def reset(self, env):
+        super(ComplexRewardCalculator, self).reset(env)
+
+
+    # def _get_reward_idea2(self):
+    #     """reward is a linear function of scatter (r = a*x + b), such that:
+    #
+    #     0 = a * initial_scatter + b
+    #     max_episode_reward = a * done_scatter + b       (done_scatter = herd_target_radius)
+    #
+    #     Therefore:
+    #     a = - max_r / (init_s - done_s)
+    #     b = - a * init_s
+    #     """
+    #     a = - self.max_episode_reward / (self.first_scatter - self.herd_target_radius)
+    #     b = - a * self.first_scatter
+    #     return a * self.scatter + b
 
 
 class AgentLayoutFunction:
@@ -228,9 +317,9 @@ class AgentLayoutFunction:
     @staticmethod
     def get_function(agent_layout):
         return{
-            constants.AgentLayout.RANDOM : AgentLayoutFunction._random,
-            constants.AgentLayout.LAYOUT1 : AgentLayoutFunction._layout1,
-            constants.AgentLayout.LAYOUT2 : AgentLayoutFunction._layout2
+            constants.AgentLayout.RANDOM: AgentLayoutFunction._random,
+            constants.AgentLayout.LAYOUT1: AgentLayoutFunction._layout1,
+            constants.AgentLayout.LAYOUT2: AgentLayoutFunction._layout2
         }[agent_layout]
 
     @staticmethod

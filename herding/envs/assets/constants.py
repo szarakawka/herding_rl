@@ -14,12 +14,16 @@ class AgentLayout(Enum):
     RANDOM, LAYOUT1, LAYOUT2 = range(3)
 
 
-class AgentObservationCompression(Enum):
-    COMPRESSED, TWO_CHANNEL, TWO_CHANNEL_FLATTENED = range(3)
+class AgentObservationRepresentation(Enum):
+    COMPRESSED, TWO_CHANNEL, TWO_CHANNEL_FLATTENED, TARGET_TYPE_ONLY = range(4)
 
 
 class AgentObservationAids(Enum):
     NO, COMPASS, TO_MASS_CENTER = range(3)
+
+
+class RewardCalculatorType(Enum):
+    SCATTER_DIFFERENCE, IN_TARGET_DIFFERENCE, COMPLEX = range(3)
 
 
 # below is the code to serialize enums into json
@@ -29,8 +33,9 @@ PUBLIC_ENUMS = {
     'SheepType': SheepType,
     'RotationMode': RotationMode,
     'AgentLayout': AgentLayout,
-    'AgentObservationCompression': AgentObservationCompression,
-    'AgentObservationAids': AgentObservationAids
+    'AgentObservationRepresentation': AgentObservationRepresentation,
+    'AgentObservationAids': AgentObservationAids,
+    'RewardCalculatorType': RewardCalculatorType
 }
 
 

@@ -1,6 +1,5 @@
-import copy
 import numpy as np
-from ..constants import AgentObservationAids, AgentObservationCompression
+from ..constants import AgentObservationAids, AgentObservationRepresentation
 
 
 class Agent:
@@ -35,10 +34,10 @@ class ActiveAgent(Agent):
 
     @staticmethod
     def get_observation_array_shape(env):
-        n_channels = 2 if env.agent_observations_compression == AgentObservationCompression.TWO_CHANNEL else 1
+        n_channels = 2 if env.agent_observations_representation == AgentObservationRepresentation.TWO_CHANNEL else 1
 
         size = env.ray_count
-        if env.agent_observations_compression == AgentObservationCompression.TWO_CHANNEL_FLATTENED:
+        if env.agent_observations_representation == AgentObservationRepresentation.TWO_CHANNEL_FLATTENED:
             size *= 2
         if env.agent_observations_aids is not AgentObservationAids.NO:
             if n_channels == 1:

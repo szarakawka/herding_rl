@@ -2,6 +2,7 @@ import sys
 import os
 import gym
 import json
+import numpy as np
 from shutil import copyfile
 from tensorforce.agents import Agent
 from tensorforce.execution import Runner
@@ -11,10 +12,11 @@ from rl.env_wrapper import EnvWrapper, OpenAIGymTensorforceWrapper
 # from rl.multi_agent_wrapper import MultiAgentWrapper
 import threading
 from statistics import mean
+
 EXIT = -1
 NOOP = 0
 SAVE = 1
-SAVE_FREQUENCY = 10
+SAVE_FREQUENCY = 50
 flag = NOOP
 
 
@@ -27,8 +29,8 @@ class Learning:
             agent_spec_filepath,
             network_spec_filepath=None,
             preprocessing_spec_filepath=None,
-            repeat_actions=3,       # was: repeat actions=5
-            max_episode_timesteps=1000,      # max_episode_timesteps=8000
+            repeat_actions=3,  # was: repeat actions=5
+            max_episode_timesteps=1000,  # max_episode_timesteps=8000
             monitor=None,
             monitor_safe=False,
             monitor_video=0,
@@ -71,6 +73,14 @@ class Learning:
         # agent spec
         with open(agent_spec_filepath, 'r') as fp:
             agent_spec = json.load(fp=fp)
+
+        # add tensorboard support
+        agent_spec['summarizer'] = {
+            "directory": self.save_dir,
+            "labels": ["rewards"],
+            "seconds": 10
+        }
+
         copyfile(agent_spec_filepath, os.path.join(self.save_dir, 'agent_spec.json'))
         self.agent = Agent.from_spec(
             spec=agent_spec,
@@ -98,12 +108,18 @@ class Learning:
         self.max_episode_timesteps = max_episode_timesteps
         self.runner = Runner(agent=self.agent, environment=self.env, repeat_actions=repeat_actions)
         self.instance_episodes = 0
-        self.terminal_reward = self.env.gym.max_episode_reward if not self.is_monitor else self.env.gym.env.max_episode_reward
+        self.terminal_reward =\
+            self.env.gym.max_episode_reward if not self.is_monitor else self.env.gym.env.max_episode_reward
         sys.stdout.flush()
 
     def _log_data(self, r, info):
         with open(self.save_dir + '/out.log', 'a+') as f:
-            message = '{ep} {ts} {rw} {info}\n'.format(ep=r.episode, ts=r.timestep, rw=r.episode_rewards[-1], info=info)
+            message = 'Ep. {ep} timestep={ts} last_R={rw} avg50_R={rw50} {info}\n'. \
+                format(ep=r.episode,
+                       ts=r.timestep,
+                       rw=r.episode_rewards[-1],
+                       rw50=np.mean(r.episode_rewards[-50:]),
+                       info=info)
             f.write(message)
             print(message)
         sys.stdout.flush()
@@ -131,19 +147,23 @@ class Learning:
         return True
 
     def learn(self):
-        self.runner.run(episode_finished=self.episode_finished, max_episode_timesteps=self.max_episode_timesteps)
+        self.runner.run(
+            episode_finished=self.episode_finished,
+            max_episode_timesteps=self.max_episode_timesteps)
 
     def stop_learning(self):
         self.agent.stop = True
 
     def load_model(self):
-        if os.path.isfile(self.save_dir + '/checkpoint'):
-            self.agent.load_model(self.save_dir)
+        if os.path.isfile(os.path.join(self.save_dir, 'model', 'checkpoint')):
+            self.agent.restore_model(os.path.join(self.save_dir, 'model/'))
             print('model loaded')
-            sys.stdout.flush()
+        else:
+            print('model not loaded!')
+        sys.stdout.flush()
 
     def save_model(self):
-        self.agent.save_model(self.save_dir)
+        self.agent.save_model(os.path.join(self.save_dir, 'model/'))
         print('model saved')
         sys.stdout.flush()
 

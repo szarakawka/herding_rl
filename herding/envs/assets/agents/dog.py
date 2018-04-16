@@ -22,7 +22,7 @@ class Dog(ActiveAgent):
         self.max_rotation_speed = env.max_rotation_speed
         self.field_of_view = env.field_of_view
         self.herd_centre_point = env.herd_centre_point
-        self.observation_compression = env.agent_observations_compression
+        self.observation_representation = env.agent_observations_representation
         self.observation_aid = env.agent_observations_aids
         self.observation_aid_method = self._get_observation_aid_method()
 
@@ -166,12 +166,16 @@ class Dog(ActiveAgent):
                     self.color_rays(temp_angle, distance, agent)
 
     def _from_rays_to_observations(self):
-        if self.observation_compression == constants.AgentObservationCompression.TWO_CHANNEL:
+        if self.observation_representation == constants.AgentObservationRepresentation.TWO_CHANNEL:
             self.observation[:, 0:self.ray_count] = self.rays
-        elif self.observation_compression == constants.AgentObservationCompression.TWO_CHANNEL_FLATTENED:
+        elif self.observation_representation == constants.AgentObservationRepresentation.TWO_CHANNEL_FLATTENED:
             self.observation[0, 0:2*self.ray_count] = self.rays.flatten()
-        else:
+        elif self.observation_representation == constants.AgentObservationRepresentation.TARGET_TYPE_ONLY:
+            self.observation[0, 0:self.ray_count] = self.rays[self.TARGETS_IDX][:]
+        elif self.observation_representation == constants.AgentObservationRepresentation.COMPRESSED:
             self.observation[0, 0:self.ray_count] = self.rays[0, :] * self.rays[1, :]
+        else:
+            raise ValueError('Bad observation representation type.')
 
     def get_observation(self):
         self.clear_observation()

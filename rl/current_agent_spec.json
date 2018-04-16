@@ -27,11 +27,6 @@
         "directory": null,
         "seconds": 600
     },
-    "summarizer": {
-        "directory": null,
-        "labels": ["inputs", "losses", "configuration"],
-        "seconds": 120
-    },
     "execution": {
         "type": "single",
         "session_config": null,

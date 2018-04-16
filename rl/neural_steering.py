@@ -46,11 +46,11 @@ class NeuralSteering:
         #         dog_count)
 
     def load_model(self):
-        if os.path.isfile(os.path.join(self.save_dir, 'checkpoint')):
-            self.agent.restore_model(self.save_dir)
-            print('Model loaded.')
+        if os.path.isfile(os.path.join(self.save_dir, 'model', 'checkpoint')):
+            self.agent.restore_model(os.path.join(self.save_dir, 'model/'))
+            print('model loaded')
         else:
-            print('Model not loaded!')
+            print('model not loaded!')
         sys.stdout.flush()
 
     def show_simulation(self):
@@ -61,10 +61,11 @@ class NeuralSteering:
             while True:
                 action = self.agent.act(states=state)
                 terminal = False
-                for _ in range(5):
+                for _ in range(3):
                     state, terminal, reward = self.env.execute(actions=action)
                     timestep += 1
                     self.env.gym.render()
-                if terminal is True or timestep == 50000:
-                    timestep = 0
+                    if terminal is True:
+                        break
+                if terminal is True or timestep >= 2000:
                     break

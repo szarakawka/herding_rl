@@ -178,6 +178,7 @@ class EnvWrapper(herding.Herding):
                    ray_length=herding_obj.ray_length,
                    field_of_view=herding_obj.field_of_view,
                    rotation_mode=herding_obj.rotation_mode,
-                   agent_observations_compression=herding_obj.agent_observations_compression,
-                   agent_observations_aids=herding_obj.agent_observations_aids)
+                   agent_observations_representation=herding_obj.agent_observations_representation,
+                   agent_observations_aids=herding_obj.agent_observations_aids,
+                   reward_type=herding_obj.reward_type)
 

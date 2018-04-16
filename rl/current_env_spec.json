@@ -1,1 +1,16 @@
-{"dog_count": 1, "sheep_count": 3, "agent_layout": {"__enum__": "AgentLayout.RANDOM"}, "sheep_type": {"__enum__": "SheepType.SIMPLE"}, "max_movement_speed": 5, "max_rotation_speed": 90, "continuous_sheep_spread_rate": 1, "ray_count": 180, "ray_length": 600, "field_of_view": 180, "rotation_mode": {"__enum__": "RotationMode.LOCKED_ON_HERD_CENTRE"}, "agent_observations_compression": {"__enum__": "AgentObservationCompression.COMPRESSED"}, "agent_observations_aids": {"__enum__": "AgentObservationAids.TO_MASS_CENTER"}}
+{
+  "dog_count": 1,
+  "sheep_count": 5,
+  "agent_layout": {"__enum__": "AgentLayout.RANDOM"},
+  "sheep_type": {"__enum__": "SheepType.SIMPLE"},
+  "max_movement_speed": 5,
+  "max_rotation_speed": 90,
+  "continuous_sheep_spread_rate": 1,
+  "ray_count": 180,
+  "ray_length": 600,
+  "field_of_view": 180,
+  "rotation_mode": {"__enum__": "RotationMode.LOCKED_ON_HERD_CENTRE"},
+  "agent_observations_representation": {"__enum__": "AgentObservationRepresentation.COMPRESSED"},
+  "agent_observations_aids": {"__enum__": "AgentObservationAids.NO"},
+  "reward_type": {"__enum__": "RewardCalculatorType.COMPLEX"}
+}
