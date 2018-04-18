@@ -5,6 +5,7 @@ import json
 import numpy as np
 from shutil import copyfile
 from tensorforce.agents import Agent
+import tensorflow as tf
 import herding
 from rl.env_wrapper import OpenAIGymTensorforceWrapper
 from rl.multi_clones_runner import MultiClonesRoundRobinRunner
@@ -83,6 +84,13 @@ class Learning:
             "directory": self.save_dir,
             "labels": ["rewards"],
             "seconds": 10
+        }
+
+        # prevent tensorflow from allocating all the memory on GPU
+        agent_spec['execution'] = {
+            "type": "single",
+            "session_config": tf.ConfigProto(gpu_options=tf.GPUOptions(allow_growth=True)),
+            "distributed_spec": None
         }
 
         copyfile(agent_spec_filepath, os.path.join(self.save_dir, 'agent_spec.json'))
