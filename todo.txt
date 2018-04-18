@@ -1,34 +1,47 @@
 Done:
 - play herding with dog_count = 1   ... done
 - play herding with dog_count > 1   ... done
+
 - fix too many actions in manual steering ... done
+
 - fix env usage ... done
+
 - check observations ... use_tan_to_center works ok in Herding play     ... done
+
 - add: AgentObservationCompression and AgentObservationAids options
     - AgentObservationCompression option requires the distinction between agent observation
     (required by api) and agent rays (used for visualization and for calculating observations)
     ... done
+
 - feature_request: herding config loadable from json (which should be copied to experiments_logs directories
 similarily to agent/net config)  ... done
+
 - enable tensorboard summaries   ... done partially : only rewards are collected, other data summaries
 causes problems
+
 - run trpo learning with visualization    ... this works
+
 - Experiments with dog_count=1 for now:
     - temporarily remove multiagent wrapper  ... ok
-    - investivate current reward function -> seams legit, because it is possible to train simple 1 dog,
+    - investivate current reward function -> seems legit, because it is possible to train simple 1 dog,
     3 sheep problem, but sometimes gets very high causing instant termination of training:
+
 - refactor reward_counter, add other reward_counters ... done
 
-- check the output of a neural net: descrete or continuous? etc..
-
+- fix errors for dog_count > 1
+    - establish actions/states shape scheme:
+        - for correctly set herding enum options, flatten preprocessing should not be needed at all
+        (like for TWO_CHANNEL and convNet or TWO_CHANNEL_FLATTENED and denseNet)
+        - in herding env: states and actions are list of length dog_count
+            - or... check actions shape ...
+    - remove EnvWrapper, which should be no longer needed  ... ok
 
 
 To fix:
-- fix errors for dog_count > 1
 - fix/check monitor
 - fix other tensorboard summaries
 
-
+- check retrain option - could contain bugs in loading config options
 
 
 Experiments/ideas:
@@ -40,10 +53,12 @@ Experiments/ideas:
     - one-shot observation (1d-compressed representation)
     vs stack_of_history_observations (this will form a 2d input to conv_net)
 - curriculum learning vs "flat" learning
-- trpo vs other rl-algorithm
+- trpo vs other rl-algorithm:
+    - ppo seems to work a lot better
 - agents of different sizes and different "weight"/"fear level"
 - additional inputs that encode agent number (or role) in the team
         (one-hot encoding not possible, but maybe other)
+- synchronous vs round-robin vs asynchronous multi-agent behavior
 - check reward calculator with exponential weight on sheep distances to herd_centre (so that
 biblical 'good shepherd' can be trained)
 

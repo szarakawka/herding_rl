@@ -132,12 +132,12 @@ class Dog(ActiveAgent):
         abs_y = abs(self.y - self.herd_centre_point[1])
         length_to_center = pow(pow(abs_x, 2) + pow(abs_y, 2), 0.5) / self.ray_length
         tan_to_center = (((np.arctan2(abs_x, abs_y) + self.rotation) % (2 * math.pi)) * 2) / (2 * math.pi) - 1
-        if self.observation.shape[0] == 2:
+        if len(self.observation.shape) == 2:
             self.observation[self.LENGTH_TO_CENTER][-1] = length_to_center
             self.observation[self.TAN_TO_CENTER][-1] = tan_to_center
         else:
-            self.observation[0, -2] = length_to_center
-            self.observation[0, -1] = tan_to_center
+            self.observation[-2] = length_to_center
+            self.observation[-1] = tan_to_center
 
     # TODO
     def _aid_observation_compass(self):
@@ -169,11 +169,11 @@ class Dog(ActiveAgent):
         if self.observation_representation == constants.AgentObservationRepresentation.TWO_CHANNEL:
             self.observation[:, 0:self.ray_count] = self.rays
         elif self.observation_representation == constants.AgentObservationRepresentation.TWO_CHANNEL_FLATTENED:
-            self.observation[0, 0:2*self.ray_count] = self.rays.flatten()
+            self.observation[0:2*self.ray_count] = self.rays.flatten()
         elif self.observation_representation == constants.AgentObservationRepresentation.TARGET_TYPE_ONLY:
-            self.observation[0, 0:self.ray_count] = self.rays[self.TARGETS_IDX][:]
+            self.observation[0:self.ray_count] = self.rays[self.TARGETS_IDX][:]
         elif self.observation_representation == constants.AgentObservationRepresentation.COMPRESSED:
-            self.observation[0, 0:self.ray_count] = self.rays[0, :] * self.rays[1, :]
+            self.observation[0:self.ray_count] = self.rays[0, :] * self.rays[1, :]
         else:
             raise ValueError('Bad observation representation type.')
 

@@ -1,22 +1,36 @@
 import sys
-import os
+import os.path
 import json
+import numpy as np
 from tensorforce.agents import Agent
 
 
 class NeuralSteering:
 
-    def __init__(self, env, save_dir):
+    def __init__(self, env, save_dir, deterministic=True):
 
         self.save_dir = save_dir
         self.env = env
+        self.deterministic = deterministic
+
+        # training spec
+        with open(os.path.join(save_dir, 'training_spec.json'), 'r') as f:
+            training_spec = json.load(f)
+
+        self.repeat_actions = training_spec["repeat_actions"]
+        self.momentum = training_spec["momentum"]
+        self.max_episode_timesteps = training_spec["max_episode_timesteps"]
+        self.num_agent_clones = env.gym.dog_count
 
         # network spec
         with open(os.path.join(save_dir, 'network_spec.json'), 'r') as f:
             network_spec = json.load(f)
 
-        with open(os.path.join(save_dir, 'preprocessing_spec.json'), 'r') as f:
-            preprocessing_spec = json.load(f)
+        if os.path.exists(os.path.join(save_dir, 'preprocessing_spec.json')):
+            with open(os.path.join(save_dir, 'preprocessing_spec.json'), 'r') as f:
+                preprocessing_spec = json.load(f)
+        else:
+            preprocessing_spec = None
 
         # agent spec
         with open(os.path.join(save_dir, 'agent_spec.json'), 'r') as f:
@@ -69,3 +83,41 @@ class NeuralSteering:
                         break
                 if terminal is True or timestep >= 2000:
                     break
+
+    def show_simulation_round_robin(self):
+        while True:
+            state = self.env.reset()
+            self.agent.reset()
+            default_action = np.zeros(shape=self.env.actions['shape'], dtype=np.float32)
+            actions = [default_action for _ in range(self.num_agent_clones)]
+
+            current_timestep = 0
+            which_clone = 0
+
+            terminal = False
+
+            # time step (within episode) loop
+            while True:
+
+                # Round robin all agents acting loop
+                which_clone += 1
+                which_clone %= self.num_agent_clones
+
+                actions[which_clone] = self.agent.act(states=state[which_clone], deterministic=self.deterministic)
+
+                for repeat in range(self.repeat_actions):
+                    state, terminal, _ = self.env.execute(actions=actions)
+                    self.env.gym.render()
+                    if terminal:
+                        break
+
+                if self.max_episode_timesteps is not None and current_timestep >= self.max_episode_timesteps:
+                    terminal = True
+
+                current_timestep += 1
+
+                if terminal or self.agent.should_stop():  # TODO: should_stop also terminate?
+                    break
+
+                if not self.momentum:
+                    actions[which_clone] = default_action

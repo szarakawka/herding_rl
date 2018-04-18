@@ -7,6 +7,7 @@ from .rendering.renderer import Renderer
 from . import constants
 from . import agents
 import math
+import cmath
 
 
 class Herding(gym.Env):
@@ -54,7 +55,7 @@ class Herding(gym.Env):
         self.agent_radius = 10
 
         self.herd_target_radius = 100
-        self.max_episode_reward = 100
+        self.max_episode_reward = 1000
 
         self.herd_centre_point = [0, 0]
 
@@ -122,10 +123,14 @@ class Herding(gym.Env):
         single_action_space = spaces.Box(-1, 1, shape=(dim,), dtype=np.float32)
         return single_action_space
 
+    # @property
+    # def action_space(self):
+    #     action_space = spaces.Tuple((self.single_action_space,) * self.dog_count)
+    #     return action_space
+
     @property
     def action_space(self):
-        action_space = spaces.Tuple((self.single_action_space,) * self.dog_count)
-        return action_space
+        return self.single_action_space
 
     @property
     def single_observation_space(self):
@@ -133,10 +138,14 @@ class Herding(gym.Env):
         single_observation_space = spaces.Box(-1, 1, shape=shape, dtype=np.float32)
         return single_observation_space
 
+    # @property
+    # def observation_space(self):
+    #     observation_space = spaces.Tuple((self.single_observation_space,) * self.dog_count)
+    #     return observation_space
+
     @property
     def observation_space(self):
-        observation_space = spaces.Tuple((self.single_observation_space,) * self.dog_count)
-        return observation_space
+        return self.single_observation_space
 
     def _create_agents(self):
         dog_list = []
@@ -155,10 +164,10 @@ class Herding(gym.Env):
             agent.set_lists(self.dog_list, self.sheep_list)
 
     def _get_state(self):
-        state = []
+        states = []
         for dog in self.dog_list:
-            state.append(dog.get_observation())
-        return state
+            states.append(dog.get_observation())
+        return states
 
     def _update_herd_centre_point_and_helper_arrays(self):
         self.herd_centre_point[0] = self.herd_centre_point[1] = 0
@@ -203,7 +212,8 @@ def reward_type_factory(reward_type):
     return {
         constants.RewardCalculatorType.SCATTER_DIFFERENCE: RelativeScatterRewardCalculator,
         constants.RewardCalculatorType.IN_TARGET_DIFFERENCE: InTargetDifferenceCircleRewardCalculator,
-        constants.RewardCalculatorType.COMPLEX: ComplexRewardCalculator
+        constants.RewardCalculatorType.COMPLEX: ComplexRewardCalculator,
+        constants.RewardCalculatorType.SCATTER_DIFFERENCE_SIGN: ScatterDifferenceSignRewardCalculator
     }[reward_type]
 
 
@@ -251,11 +261,31 @@ class RelativeScatterRewardCalculator(ScatterBasedRewardCalculator):
     def do_step(self):
         self.previous_scatter = self.scatter
         self._calc_scatter()
-        self.reward = (self.previous_scatter - self.scatter) / self.first_scatter
+        self.reward = (self.previous_scatter - self.scatter) * self.env.max_episode_reward / self.first_scatter
 
     def reset(self, env):
         super(RelativeScatterRewardCalculator, self).reset(env)
         self.first_scatter = self.scatter
+        self.previous_scatter = self.scatter
+
+
+class ScatterDifferenceSignRewardCalculator(ScatterBasedRewardCalculator):
+
+    def __init__(self, env):
+        super(ScatterDifferenceSignRewardCalculator, self).__init__(env)
+        self.previous_scatter = self.scatter
+
+    def do_step(self):
+        self.previous_scatter = self.scatter
+        self._calc_scatter()
+        self.reward = 1. if self.previous_scatter - self.scatter > 0. else -1.
+        if self.previous_scatter == self.scatter:
+            self.reward = 0.
+        if self.env.is_done():
+            self.reward += self.env.max_episode_reward
+
+    def reset(self, env):
+        super(ScatterDifferenceSignRewardCalculator, self).reset(env)
         self.previous_scatter = self.scatter
 
 
@@ -318,6 +348,7 @@ class AgentLayoutFunction:
     def get_function(agent_layout):
         return{
             constants.AgentLayout.RANDOM: AgentLayoutFunction._random,
+            constants.AgentLayout.EASY: AgentLayoutFunction._easy,
             constants.AgentLayout.LAYOUT1: AgentLayoutFunction._layout1,
             constants.AgentLayout.LAYOUT2: AgentLayoutFunction._layout2
         }[agent_layout]
@@ -342,6 +373,28 @@ class AgentLayoutFunction:
             x = (i + 1) * (env.map_width / (env.dog_count + 1))
             y = 20
             agent.set_pos(x, y)
+
+
+    @staticmethod
+    def _easy(env):
+        map_center = complex(env.map_width / 2., env.map_height / 2.)
+
+        n_agents = len(env.sheep_list)
+        phase_shift = random.random() * 2 * cmath.pi
+        r = 2 * env.herd_target_radius
+        for n, agent in enumerate(env.sheep_list):
+            phase = phase_shift + 2 * cmath.pi * n / n_agents
+            z = map_center + cmath.rect(r, phase)
+            agent.set_pos(z.real, z.imag)
+
+        n_agents = len(env.dog_list)
+        phase_shift = random.random() * 2 * cmath.pi
+        r = 4 * env.herd_target_radius
+        for n, agent in enumerate(env.dog_list):
+            phase = phase_shift + 2 * cmath.pi * n / n_agents
+            z = map_center + cmath.rect(r, phase)
+            agent.set_pos(z.real, z.imag)
+
 
     @staticmethod
     def _layout2(env):

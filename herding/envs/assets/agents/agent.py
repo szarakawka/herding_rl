@@ -45,7 +45,10 @@ class ActiveAgent(Agent):
             else:
                 size += 1
 
-        return n_channels, size
+        if n_channels == 1:
+            return size,
+        else:
+            return n_channels, size
 
     def move(self, action):
         raise NotImplementedError

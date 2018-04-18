@@ -11,7 +11,7 @@ class RotationMode(Enum):
 
 
 class AgentLayout(Enum):
-    RANDOM, LAYOUT1, LAYOUT2 = range(3)
+    RANDOM, LAYOUT1, LAYOUT2, EASY = range(4)
 
 
 class AgentObservationRepresentation(Enum):
@@ -23,7 +23,7 @@ class AgentObservationAids(Enum):
 
 
 class RewardCalculatorType(Enum):
-    SCATTER_DIFFERENCE, IN_TARGET_DIFFERENCE, COMPLEX = range(3)
+    SCATTER_DIFFERENCE, IN_TARGET_DIFFERENCE, COMPLEX, SCATTER_DIFFERENCE_SIGN = range(4)
 
 
 # below is the code to serialize enums into json

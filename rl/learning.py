@@ -5,13 +5,11 @@ import json
 import numpy as np
 from shutil import copyfile
 from tensorforce.agents import Agent
-from tensorforce.execution import Runner
 import herding
-from rl.env_wrapper import EnvWrapper, OpenAIGymTensorforceWrapper
+from rl.env_wrapper import OpenAIGymTensorforceWrapper
+from rl.multi_clones_runner import MultiClonesRoundRobinRunner
 
-# from rl.multi_agent_wrapper import MultiAgentWrapper
 import threading
-from statistics import mean
 
 EXIT = -1
 NOOP = 0
@@ -29,8 +27,7 @@ class Learning:
             agent_spec_filepath,
             network_spec_filepath=None,
             preprocessing_spec_filepath=None,
-            repeat_actions=3,  # was: repeat actions=5
-            max_episode_timesteps=1000,  # max_episode_timesteps=8000
+            training_spec_filepath=None,
             monitor=None,
             monitor_safe=False,
             monitor_video=0,
@@ -43,13 +40,20 @@ class Learning:
 
         # env spec
         self.env = OpenAIGymTensorforceWrapper(
-            EnvWrapper.from_herding(herding.Herding.from_spec(env_spec_filepath)),
+            herding.Herding.from_spec(env_spec_filepath),
             monitor=monitor,
             monitor_safe=monitor_safe,
             monitor_video=monitor_video,
             visualize=visualize)
 
         copyfile(env_spec_filepath, os.path.join(self.save_dir, 'env_spec.json'))
+
+        if training_spec_filepath is not None:
+            with open(training_spec_filepath, 'r') as f:
+                training_spec = json.load(f)
+            copyfile(training_spec_filepath, os.path.join(save_dir, 'training_spec.json'))
+        else:
+            raise FileNotFoundError("no training spec file")
 
         # network spec
         if network_spec_filepath is not None:
@@ -82,31 +86,31 @@ class Learning:
         }
 
         copyfile(agent_spec_filepath, os.path.join(self.save_dir, 'agent_spec.json'))
-        self.agent = Agent.from_spec(
-            spec=agent_spec,
-            kwargs=dict(
-                states=self.env.states,
-                actions=self.env.actions,
-                network=network_spec,
-                states_preprocessing=preprocessing_config
-            )
-        )
 
         self.is_monitor = isinstance(self.env.gym, gym.wrappers.Monitor)
+        dog_count = self.env.gym.dog_count if not self.is_monitor else self.env.gym.env.dog_count
 
-        # dog_count = env.gym.dog_count if not self.is_monitor else env.gym.env.dog_count
-        # self.agent = MultiAgentWrapper(
-        #         self.agent_type,
-        #         dict(
-        #             states=self.env.states,
-        #             actions=self.env.actions,
-        #             network=self.network_spec
-        #         ),
-        #         dog_count)
+        agent_additional_spec = dict(
+            states=self.env.states,
+            actions=self.env.actions,
+            network=network_spec,
+            states_preprocessing=preprocessing_config
+        )
 
-        self.repeat_actions = repeat_actions
-        self.max_episode_timesteps = max_episode_timesteps
-        self.runner = Runner(agent=self.agent, environment=self.env, repeat_actions=repeat_actions)
+        # if dog_count == 1:
+        self.agent = Agent.from_spec(spec=agent_spec, kwargs=agent_additional_spec)
+        # else:
+        # self.agent = MultiAgentWrapper(agent_spec=agent_spec,
+        #                                agent_additional_parameters=agent_additional_spec,
+        #                                agents_count=dog_count)
+
+        self.max_episode_timesteps = training_spec['max_episode_timesteps']
+        self.runner = MultiClonesRoundRobinRunner(
+            agent=self.agent,
+            num_agent_clones=dog_count,
+            environment=self.env,
+            momentum=training_spec['momentum'],
+            repeat_actions=training_spec['repeat_actions'])
         self.instance_episodes = 0
         self.terminal_reward =\
             self.env.gym.max_episode_reward if not self.is_monitor else self.env.gym.env.max_episode_reward
@@ -114,11 +118,11 @@ class Learning:
 
     def _log_data(self, r, info):
         with open(self.save_dir + '/out.log', 'a+') as f:
-            message = 'Ep. {ep} timestep={ts} last_R={rw} avg50_R={rw50} {info}\n'. \
+            message = 'Ep. {ep} timestep={ts} last_R={rw:.2f} 10_perc_of_last_50_R={rw50:.2f} {info}\n'. \
                 format(ep=r.episode,
                        ts=r.timestep,
                        rw=r.episode_rewards[-1],
-                       rw50=np.mean(r.episode_rewards[-50:]),
+                       rw50=np.percentile(r.episode_rewards[-50:], 10),
                        info=info)
             f.write(message)
             print(message)
@@ -140,7 +144,7 @@ class Learning:
             return False
         if flag == EXIT:
             return False
-        if len(r.episode_rewards) >= 50 and mean(r.episode_rewards[-50:]) > self.terminal_reward:
+        if len(r.episode_rewards) >= 50 and np.percentile(r.episode_rewards[-50:], 10) > self.terminal_reward:
             self.save_model()
             return False
 

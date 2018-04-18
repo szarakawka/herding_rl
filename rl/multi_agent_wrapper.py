@@ -1,13 +1,16 @@
+from tensorforce.agents import Agent
+
+
 class MultiAgentWrapper:
 
-    def __init__(self, agentType, agentParams, agentsCount):
+    def __init__(self, agent_spec, agent_additional_parameters, agents_count):
         self.agents = []
-        firstAgent = agentType(**agentParams)
-        self.agents.append(firstAgent)
-        self.model = firstAgent.model
+        first_agent = Agent.from_spec(spec=agent_spec, kwargs=agent_additional_parameters)
+        self.agents.append(first_agent)
+        self.model = first_agent.model
         self.stop = False
-        for _ in range(agentsCount - 1):
-            agent = agentType(**agentParams)
+        for _ in range(agents_count - 1):
+            agent = Agent.from_spec(spec=agent_spec, kwargs=agent_additional_parameters)
             agent.model.close()
             agent.model = self.model
             self.agents.append(agent)
@@ -28,10 +31,10 @@ class MultiAgentWrapper:
         return self.agents[0].episode
 
     # TODO probably parameter 'independent' has to be set
-    def act(self, states, deterministic=False):
-        action = ()
+    def act(self, states, deterministic=False, independent=True):
+        action = []
         for i, agent in enumerate(self.agents):
-            action += (agent.act(states=states[i], deterministic=deterministic),)
+            action += (agent.act(states=states[i], deterministic=deterministic, independent=independent),)
         return action
 
     def observe(self, reward, terminal):

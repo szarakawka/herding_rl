@@ -1,13 +1,12 @@
-import herding
 import gym
 import numpy as np
-from gym import spaces
 from tensorforce import TensorForceError
 from tensorforce.environments import Environment
 
 
 # class copied from TensorForce, slightly modified to work
 # without the need of gym_id parameter (registered envs only), instead directly passing custom env
+# noinspection PyUnresolvedReferences
 class OpenAIGymTensorforceWrapper(Environment):
 
     def __init__(self, gym_env, monitor=None, monitor_safe=False, monitor_video=0, visualize=False):
@@ -133,52 +132,3 @@ class OpenAIGymTensorforceWrapper(Environment):
             return actions
         else:
             raise TensorForceError('Unknown Gym space.')
-
-
-class EnvWrapper(herding.Herding):
-
-    def step(self, action):
-        state, reward, terminal, _ = super().step(action)
-        newState = []
-        for i, _ in enumerate(self.dog_list):
-            s = state[i]
-            s = s.flatten()
-            newState.append(s)
-
-        return newState, reward, terminal, _
-
-    def reset(self):
-        state = super().reset()
-        newState = []
-        for i, _ in enumerate(self.dog_list):
-            s = state[i]
-            s = s.flatten()
-            newState.append(s)
-
-        return newState
-
-    # @property
-    # def action_space(self):
-    #     return self.single_action_space
-
-    @property
-    def observation_space(self):
-        return self.single_observation_space
-
-    @classmethod
-    def from_herding(cls, herding_obj):
-        return cls(dog_count=herding_obj.dog_count,
-                   sheep_count=herding_obj.sheep_count,
-                   agent_layout=herding_obj.agent_layout,
-                   sheep_type=herding_obj.sheep_type,
-                   max_movement_speed=herding_obj.max_movement_speed,
-                   max_rotation_speed=herding_obj.max_rotation_speed,
-                   continuous_sheep_spread_rate=herding_obj.continuous_sheep_spread_rate,
-                   ray_count=herding_obj.ray_count,
-                   ray_length=herding_obj.ray_length,
-                   field_of_view=herding_obj.field_of_view,
-                   rotation_mode=herding_obj.rotation_mode,
-                   agent_observations_representation=herding_obj.agent_observations_representation,
-                   agent_observations_aids=herding_obj.agent_observations_aids,
-                   reward_type=herding_obj.reward_type)
-

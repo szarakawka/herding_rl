@@ -1,6 +1,7 @@
 import herding
 import os.path
-from rl.env_wrapper import EnvWrapper, OpenAIGymTensorforceWrapper
+import json
+from rl.env_wrapper import OpenAIGymTensorforceWrapper
 from rl.learning import Learning
 from rl.neural_steering import NeuralSteering
 
@@ -9,14 +10,15 @@ class Mode:
     PLAY, TRAIN, TEST, RETRAIN = range(4)
 
 
-mode = Mode.TRAIN
+mode = Mode.RETRAIN
 
 
-save_dir = 'experiments_logs/020/'
+save_dir = 'experiments_logs/m045/'
 env_spec_filepath = 'rl/current_env_spec.json'
+training_spec_filepath = 'rl/current_training_spec.json'
 agent_spec_filepath = 'rl/current_agent_spec.json'
 network_spec_filepath = 'rl/current_network_spec.json'
-preprocessing_spec_filepath = 'rl/current_preprocessing_spec.json'
+preprocessing_spec_filepath = None      # 'rl/current_preprocessing_spec.json'
 
 
 if mode == Mode.PLAY:
@@ -28,18 +30,35 @@ elif mode == Mode.TRAIN or mode == Mode.RETRAIN:
                   agent_spec_filepath=agent_spec_filepath,
                   network_spec_filepath=network_spec_filepath,
                   preprocessing_spec_filepath=preprocessing_spec_filepath,
-                  max_episode_timesteps=1999,
+                  training_spec_filepath=training_spec_filepath,
                   # monitor=save_dir,
                   # monitor_video=10,
                   visualize=False)
+
+    rl = Learning(save_dir=save_dir,
+                  env_spec_filepath=env_spec_filepath,
+                  agent_spec_filepath=agent_spec_filepath,
+                  network_spec_filepath=network_spec_filepath,
+                  preprocessing_spec_filepath=preprocessing_spec_filepath,
+                  training_spec_filepath=training_spec_filepath,
+                  # monitor=save_dir,
+                  # monitor_video=10,
+                  visualize=False)
+
     if mode == Mode.RETRAIN:
         rl.load_model()
     rl.learn()
+
 elif mode == Mode.TEST:
     env = herding.Herding.from_spec(os.path.join(save_dir, 'env_spec.json'))
+    with open(os.path.join(save_dir, 'training_spec.json'), 'r') as f:
+        training_spec = json.load(f)
     ns = NeuralSteering(
-        env=OpenAIGymTensorforceWrapper(EnvWrapper.from_herding(env)),
-        save_dir=save_dir)
-    ns.show_simulation()
+        env=OpenAIGymTensorforceWrapper(env),
+        save_dir=save_dir,
+        deterministic=False
+        )
+    ns.show_simulation_round_robin()
+
 else:
     raise ValueError('bad mode')
