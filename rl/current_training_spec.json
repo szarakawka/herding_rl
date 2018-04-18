@@ -1,5 +1,5 @@
 {
   "repeat_actions": 3,
-  "momentum": 0,
-  "max_episode_timesteps": 499
+  "momentum": 0.5,
+  "max_episode_timesteps": 1999
 }

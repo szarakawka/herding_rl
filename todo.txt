@@ -32,9 +32,12 @@ causes problems
     - establish actions/states shape scheme:
         - for correctly set herding enum options, flatten preprocessing should not be needed at all
         (like for TWO_CHANNEL and convNet or TWO_CHANNEL_FLATTENED and denseNet)
-        - in herding env: states and actions are list of length dog_count
-            - or... check actions shape ...
+        - in herding env: states and actions are list of length dog_count ... ok
     - remove EnvWrapper, which should be no longer needed  ... ok
+
+- enable training without x-server - ok, but terrible temporary solution
+
+- set allow_growth=True, so that tensorflow does not allocated all the memory on gpu
 
 
 To fix:

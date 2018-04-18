@@ -3,7 +3,6 @@ import numpy as np
 import random
 import json
 from gym import spaces
-from .rendering.renderer import Renderer
 from . import constants
 from . import agents
 import math
@@ -107,6 +106,7 @@ class Herding(gym.Env):
             return
 
         if self.viewer is None:
+            from .rendering.renderer import Renderer
             self.viewer = Renderer(self)
 
         self.viewer.render()

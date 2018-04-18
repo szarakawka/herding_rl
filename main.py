@@ -1,4 +1,4 @@
-import herding
+from herding.envs.assets.herding import Herding
 import os.path
 import json
 from rl.env_wrapper import OpenAIGymTensorforceWrapper
@@ -10,10 +10,10 @@ class Mode:
     PLAY, TRAIN, TEST, RETRAIN = range(4)
 
 
-mode = Mode.RETRAIN
+mode = Mode.TRAIN
 
 
-save_dir = 'experiments_logs/m045/'
+save_dir = 'experiments_logs/d20_000/'
 env_spec_filepath = 'rl/current_env_spec.json'
 training_spec_filepath = 'rl/current_training_spec.json'
 agent_spec_filepath = 'rl/current_agent_spec.json'
@@ -22,8 +22,9 @@ preprocessing_spec_filepath = None      # 'rl/current_preprocessing_spec.json'
 
 
 if mode == Mode.PLAY:
-    env = herding.Herding.from_spec(env_spec_filepath)
-    herding.play(env)
+    env = Herding.from_spec(env_spec_filepath)
+    from herding.manual_steering import play
+    play(env)
 elif mode == Mode.TRAIN or mode == Mode.RETRAIN:
     rl = Learning(save_dir=save_dir,
                   env_spec_filepath=env_spec_filepath,
@@ -50,7 +51,7 @@ elif mode == Mode.TRAIN or mode == Mode.RETRAIN:
     rl.learn()
 
 elif mode == Mode.TEST:
-    env = herding.Herding.from_spec(os.path.join(save_dir, 'env_spec.json'))
+    env = Herding.from_spec(os.path.join(save_dir, 'env_spec.json'))
     with open(os.path.join(save_dir, 'training_spec.json'), 'r') as f:
         training_spec = json.load(f)
     ns = NeuralSteering(
