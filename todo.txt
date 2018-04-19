@@ -34,27 +34,39 @@ causes problems
         (like for TWO_CHANNEL and convNet or TWO_CHANNEL_FLATTENED and denseNet)
         - in herding env: states and actions are list of length dog_count ... ok
     - remove EnvWrapper, which should be no longer needed  ... ok
+    - multi clone runner with momentum - done.
 
 - enable training without x-server - ok, but terrible temporary solution
 
-- set allow_growth=True, so that tensorflow does not allocated all the memory on gpu
+- set allow_growth=True, so that tensorflow does not allocated all the memory on gpu - done
+
+
+- add 'complex' sheep behavior
+
+
+
+- framework for automated reproducible configurable repeatable (n-times and then averaging) experiments for deriving
+conclusions about
+
+- speeding up simulations (parallelism)
+
+
 
 
 To fix:
 - fix/check monitor
 - fix other tensorboard summaries
 
-- check retrain option - could contain bugs in loading config options
-
 
 Experiments/ideas:
-- dense net with two channels vs compressed representation in one channel
+- dense net with two channels vs compressed representation in one channel vs target_type_only
 (two channels multiplied elementwise)
 - investigate the influence of various aids: No, compass, location, tan_to_mass_centre
 - dense net vs convolutional net
 - historical info to agents:
     - one-shot observation (1d-compressed representation)
     vs stack_of_history_observations (this will form a 2d input to conv_net)
+    vs lstm
 - curriculum learning vs "flat" learning
 - trpo vs other rl-algorithm:
     - ppo seems to work a lot better

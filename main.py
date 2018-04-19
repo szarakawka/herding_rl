@@ -10,7 +10,7 @@ class Mode:
     PLAY, TRAIN, TEST, RETRAIN = range(4)
 
 
-mode = Mode.TRAIN
+mode = Mode.TEST
 
 
 save_dir = 'experiments_logs/d20_000/'
