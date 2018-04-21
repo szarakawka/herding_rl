@@ -23,7 +23,7 @@ class AgentObservationAids(Enum):
 
 
 class RewardCalculatorType(Enum):
-    SCATTER_DIFFERENCE, IN_TARGET_DIFFERENCE, COMPLEX, SCATTER_DIFFERENCE_SIGN = range(4)
+    SCATTER_DIFFERENCE, IN_TARGET_DIFFERENCE, COMPLEX, SCATTER_DIFFERENCE_SIGN, SCATTER_POTENTIAL_BASED = range(5)
 
 
 # below is the code to serialize enums into json

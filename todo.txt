@@ -40,6 +40,10 @@ causes problems
 
 - set allow_growth=True, so that tensorflow does not allocated all the memory on gpu - done
 
+- refactor herding, so that there is a one 'native' env reward + possible reward shaping function as callable
+
+
+
 
 - add 'complex' sheep behavior
 

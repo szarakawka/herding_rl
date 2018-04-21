@@ -213,7 +213,8 @@ def reward_type_factory(reward_type):
         constants.RewardCalculatorType.SCATTER_DIFFERENCE: RelativeScatterRewardCalculator,
         constants.RewardCalculatorType.IN_TARGET_DIFFERENCE: InTargetDifferenceCircleRewardCalculator,
         constants.RewardCalculatorType.COMPLEX: ComplexRewardCalculator,
-        constants.RewardCalculatorType.SCATTER_DIFFERENCE_SIGN: ScatterDifferenceSignRewardCalculator
+        constants.RewardCalculatorType.SCATTER_DIFFERENCE_SIGN: ScatterDifferenceSignRewardCalculator,
+        constants.RewardCalculatorType.SCATTER_POTENTIAL_BASED: ScatterOnlyPotentialShapingRewardCalculator
     }[reward_type]
 
 
@@ -267,6 +268,63 @@ class RelativeScatterRewardCalculator(ScatterBasedRewardCalculator):
         super(RelativeScatterRewardCalculator, self).reset(env)
         self.first_scatter = self.scatter
         self.previous_scatter = self.scatter
+
+
+class PotentialBasedShapingRewardCalculatorBase(RewardCalculator):
+
+    def __init__(self, env):
+        super(PotentialBasedShapingRewardCalculatorBase, self).__init__(env)
+        self.potential = self.calc_state_potential()
+        self.prev_potential = self.potential
+
+    def calc_state_potential(self):
+        raise NotImplementedError('Implement this: return potential')
+
+    def do_step(self):
+        self.prev_potential = self.potential
+        self.potential = self.calc_state_potential()
+        self.reward = self.potential - self.prev_potential
+
+    def reset(self, env):
+        super(PotentialBasedShapingRewardCalculatorBase, self).reset(env)
+        self.potential = self.calc_state_potential()
+        self.prev_potential = self.potential
+
+
+class ScatterOnlyPotentialShapingRewardCalculator(PotentialBasedShapingRewardCalculatorBase):
+    """
+    Assumption: state potential is linearly dependent on sheep scatter only: psi = a * scatter + b
+    Because: psi_target = R_max, and psi_initial = 0, then:
+    a = - R_max / (initial_scatter - target_scatter)
+    b = R_max * initial_scatter / (initial_scatter - target_scatter)
+    """
+
+    def __init__(self, env):
+        self.a_coefficient = 0.
+        self.b_coefficient = 0.
+        super(ScatterOnlyPotentialShapingRewardCalculator, self).__init__(env)
+        self._calc_linear_coefficients()
+        self.potential = self.calc_state_potential()
+        self.prev_potential = self.potential
+
+    def calc_state_potential(self):
+        scatter = self._calc_scatter()
+        return self.a_coefficient * scatter + self.b_coefficient
+
+    def reset(self, env):
+        super(ScatterOnlyPotentialShapingRewardCalculator, self).reset(env)
+        self._calc_linear_coefficients()
+        self.potential = self.calc_state_potential()
+        self.prev_potential = self.potential
+
+    def _calc_linear_coefficients(self):
+        initial_scatter = self._calc_scatter()
+        target_scatter = self.env.herd_target_radius
+        self.a_coefficient = - self.env.max_episode_reward / (initial_scatter - target_scatter)
+        self.b_coefficient = self.env.max_episode_reward * initial_scatter / (initial_scatter - target_scatter)
+
+    def _calc_scatter(self):
+        return np.mean(self.env.sheep_distances_to_herd_center)
 
 
 class ScatterDifferenceSignRewardCalculator(ScatterBasedRewardCalculator):
@@ -325,21 +383,6 @@ class ComplexRewardCalculator(RelativeScatterRewardCalculator):
 
     def reset(self, env):
         super(ComplexRewardCalculator, self).reset(env)
-
-
-    # def _get_reward_idea2(self):
-    #     """reward is a linear function of scatter (r = a*x + b), such that:
-    #
-    #     0 = a * initial_scatter + b
-    #     max_episode_reward = a * done_scatter + b       (done_scatter = herd_target_radius)
-    #
-    #     Therefore:
-    #     a = - max_r / (init_s - done_s)
-    #     b = - a * init_s
-    #     """
-    #     a = - self.max_episode_reward / (self.first_scatter - self.herd_target_radius)
-    #     b = - a * self.first_scatter
-    #     return a * self.scatter + b
 
 
 class AgentLayoutFunction:

@@ -10,10 +10,10 @@ class Mode:
     PLAY, TRAIN, TEST, RETRAIN = range(4)
 
 
-mode = Mode.TEST
+mode = Mode.TRAIN
 
 
-save_dir = 'experiments_logs/d20_000/'
+save_dir = 'experiments_logs/047_scatter_potential_based/'
 env_spec_filepath = 'rl/current_env_spec.json'
 training_spec_filepath = 'rl/current_training_spec.json'
 agent_spec_filepath = 'rl/current_agent_spec.json'
