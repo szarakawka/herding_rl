@@ -13,7 +13,7 @@ class Mode:
 mode = Mode.TRAIN
 
 
-save_dir = 'experiments_logs/047_scatter_potential_based/'
+save_dir = 'experiments_logs/052_potential/'
 env_spec_filepath = 'rl/current_env_spec.json'
 training_spec_filepath = 'rl/current_training_spec.json'
 agent_spec_filepath = 'rl/current_agent_spec.json'

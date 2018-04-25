@@ -296,12 +296,12 @@ class ScatterOnlyPotentialShapingRewardCalculator(PotentialBasedShapingRewardCal
     Assumption: state potential is linearly dependent on sheep scatter only: psi = a * scatter + b
     Because: psi_target = R_max, and psi_initial = 0, then:
     a = - R_max / (initial_scatter - target_scatter)
-    b = R_max * initial_scatter / (initial_scatter - target_scatter)
+    b = R_max * initial_scatter / (initial_scatter - target_scatter) : but b_coeffs cancels out
+    when potentials are subtracted, so can be removed
     """
 
     def __init__(self, env):
         self.a_coefficient = 0.
-        self.b_coefficient = 0.
         super(ScatterOnlyPotentialShapingRewardCalculator, self).__init__(env)
         self._calc_linear_coefficients()
         self.potential = self.calc_state_potential()
@@ -309,7 +309,7 @@ class ScatterOnlyPotentialShapingRewardCalculator(PotentialBasedShapingRewardCal
 
     def calc_state_potential(self):
         scatter = self._calc_scatter()
-        return self.a_coefficient * scatter + self.b_coefficient
+        return self.a_coefficient * scatter
 
     def reset(self, env):
         super(ScatterOnlyPotentialShapingRewardCalculator, self).reset(env)
@@ -321,7 +321,6 @@ class ScatterOnlyPotentialShapingRewardCalculator(PotentialBasedShapingRewardCal
         initial_scatter = self._calc_scatter()
         target_scatter = self.env.herd_target_radius
         self.a_coefficient = - self.env.max_episode_reward / (initial_scatter - target_scatter)
-        self.b_coefficient = self.env.max_episode_reward * initial_scatter / (initial_scatter - target_scatter)
 
     def _calc_scatter(self):
         return np.mean(self.env.sheep_distances_to_herd_center)

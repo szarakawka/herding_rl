@@ -1,7 +1,7 @@
 {
-  "dog_count": 1,
-  "sheep_count": 3,
-  "agent_layout": {"__enum__": "AgentLayout.EASY"},
+  "dog_count": 3,
+  "sheep_count": 5,
+  "agent_layout": {"__enum__": "AgentLayout.RANDOM"},
   "sheep_type": {"__enum__": "SheepType.SIMPLE"},
   "max_movement_speed": 5,
   "max_rotation_speed": 90,

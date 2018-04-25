@@ -1,10 +1,10 @@
 [
   {
     "type": "dense",
-    "size": 64
+    "size": 128
   },
   {
     "type": "dense",
-    "size": 16
+    "size": 64
   }
 ]

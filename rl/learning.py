@@ -120,18 +120,31 @@ class Learning:
             momentum=training_spec['momentum'],
             repeat_actions=training_spec['repeat_actions'])
         self.instance_episodes = 0
-        self.terminal_reward =\
-            self.env.gym.max_episode_reward if not self.is_monitor else self.env.gym.env.max_episode_reward
+        self.terminal_fraction_of_wins = 0.9
         sys.stdout.flush()
 
+    def _calculate_fraction_of_wins_in_last_n_episodes(self, r, n_last_episodes=50):
+        return np.mean(np.array(r.episode_timesteps[-n_last_episodes:]) < self.max_episode_timesteps)
+
     def _log_data(self, r, info):
+
         with open(self.save_dir + '/out.log', 'a+') as f:
-            message = 'Ep. {ep} timestep={ts} last_R={rw:.2f} 10_perc_of_last_50_R={rw50:.2f} {info}\n'. \
-                format(ep=r.episode,
-                       ts=r.timestep,
-                       rw=r.episode_rewards[-1],
-                       rw50=np.percentile(r.episode_rewards[-50:], 10),
-                       info=info)
+            if info['win'] == 1:
+                message = 'Ep. {ep}, timestep={ts}, last_R={r:.2f}, avg50_R={r50:.2f}, avg50_win={w50:.2f}, ' \
+                          'target reached in {t} steps.\n'. \
+                    format(ep=r.episode,
+                           ts=r.timestep,
+                           r=r.episode_rewards[-1],
+                           r50=np.mean(r.episode_rewards[-50:]),
+                           w50=info['fraction_of_wins'],
+                           t=r.episode_timesteps[-1])
+            else:
+                message = 'Ep. {ep}, timestep={ts}, last_R={r:.2f}, avg50_R={r50:.2f}, avg50_win={w50:.2f}.\n'. \
+                    format(ep=r.episode,
+                           ts=r.timestep,
+                           r=r.episode_rewards[-1],
+                           r50=np.mean(r.episode_rewards[-50:]),
+                           w50=info['fraction_of_wins'])
             f.write(message)
             print(message)
         sys.stdout.flush()
@@ -139,7 +152,11 @@ class Learning:
     def episode_finished(self, r, _):
         global flag, EXIT, SAVE, NOOP
         save_frequency = SAVE_FREQUENCY
-        info = ''
+
+        win = int(r.episode_timesteps[-1] < self.max_episode_timesteps)
+        fraction_of_wins = self._calculate_fraction_of_wins_in_last_n_episodes(r)
+        info = {'fraction_of_wins': fraction_of_wins,
+                'win': win}
         self.instance_episodes += 1
 
         if self.instance_episodes >= save_frequency and r.episode % save_frequency == 0:
@@ -152,7 +169,7 @@ class Learning:
             return False
         if flag == EXIT:
             return False
-        if len(r.episode_rewards) >= 50 and np.percentile(r.episode_rewards[-50:], 10) > self.terminal_reward:
+        if len(r.episode_rewards) >= 50 and fraction_of_wins > self.terminal_fraction_of_wins:
             self.save_model()
             return False
 
